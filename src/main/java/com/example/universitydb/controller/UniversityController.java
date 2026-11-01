@@ -3,6 +3,7 @@ package com.example.universitydb.controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,6 +23,7 @@ import com.example.universitydb.repository.StudentRepository;
 
 import lombok.RequiredArgsConstructor;
 
+@Transactional(readOnly = true)
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -41,7 +43,9 @@ public class UniversityController {
                 ? studentRepository.findAllByOrderByFullNameAsc()
                 : studentRepository.findByFullNameContainingIgnoreCase(name.trim());
 
-        return list.stream().map(StudentDto::from).toList();
+        return list.stream()
+                .map(StudentDto::from)
+                .toList();
     }
 
     @GetMapping("/students/{code}")
@@ -58,7 +62,9 @@ public class UniversityController {
             @PathVariable String code) {
 
         return enrollmentRepository.findByStudent_StudentCode(code)
-                .stream().map(EnrollmentDto::from).toList();
+                .stream()
+                .map(EnrollmentDto::from)
+                .toList();
     }
 
     // Courses
@@ -72,12 +78,15 @@ public class UniversityController {
         if (minCredits != null) {
             list = courseRepository.findByCreditsGreaterThanEqual(minCredits);
         } else if (department != null && !department.isBlank()) {
-            list = courseRepository.findByLecturer_Department_Name(department.trim());
+            list = courseRepository.findByLecturer_Department_Name(
+                    department.trim());
         } else {
             list = courseRepository.findAll();
         }
 
-        return list.stream().map(CourseDto::from).toList();
+        return list.stream()
+                .map(CourseDto::from)
+                .toList();
     }
 
     @GetMapping("/courses/{code}/students")
@@ -85,33 +94,42 @@ public class UniversityController {
             @PathVariable String code) {
 
         return enrollmentRepository.findByCourse_Code(code)
-                .stream().map(e -> StudentDto.from(e.getStudent())).toList();
+                .stream()
+                .map(e -> StudentDto.from(e.getStudent()))
+                .toList();
     }
 
     // Departments
-    @GetMapping("/departments/{code}/lecturers")
+    @GetMapping("/department/{code}/lecturers")
     public ResponseEntity<List<LecturerDto>> departmentLecturers(
             @PathVariable String code) {
 
         return departmentRepository.findWithLecturers(code)
                 .map(d -> ResponseEntity.ok(
-                        d.getLecturers().stream().map(LecturerDto::from).toList()))
+                        d.getLecturers().stream()
+                                .map(LecturerDto::from)
+                                .toList()))
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // Enrollments and reports
+    // Enrollments
     @GetMapping("/enrollments")
     public List<EnrollmentDto> enrollments(
             @RequestParam String grade) {
 
         return enrollmentRepository.findByGrade(grade)
-                .stream().map(EnrollmentDto::from).toList();
+                .stream()
+                .map(EnrollmentDto::from)
+                .toList();
     }
 
+    // Reports
     @GetMapping("/reports/course-counts")
     public List<CourseCountDto> courseCounts() {
 
         return enrollmentRepository.countStudentsPerCourse()
-                .stream().map(CourseCountDto::from).toList();
+                .stream()
+                .map(CourseCountDto::from)
+                .toList();
     }
 }
